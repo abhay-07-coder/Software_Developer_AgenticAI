@@ -1,0 +1,14 @@
+{
+  "task_id": "task_005",
+  "title": "API Design and Specification (OpenAPI)",
+  "description": "Define all API endpoints, request/response payloads, and status codes using the OpenAPI 3.0 specification. - Acceptance Criteria: A swagger.json or openapi.yaml file is generated. - All endpoints for users, products, cart, and orders are documented. - Authentication scheme (e.g., JWT) is specified.",
+  "complexity": "medium",
+  "estimated_hours": 20.0,
+  "dependencies": [
+    "task_004"
+  ],
+  "completed_at": "2025-07-21T05:37:47.035073",
+  "output_files": [
+    "task_005_api_design_and_specification__openapi/implementation.py"
+  ]
+}

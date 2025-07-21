@@ -1,0 +1,14 @@
+{
+  "task_id": "task_006",
+  "title": "UI/UX Wireframing and Prototyping",
+  "description": "Create low-fidelity and high-fidelity wireframes for all user-facing screens and flows. - Acceptance Criteria: Wireframes for home, product list, product detail, cart, and checkout are approved. - A clickable prototype (e.g., in Figma) is available for team review. - User flow diagrams are complete.",
+  "complexity": "medium",
+  "estimated_hours": 40.0,
+  "dependencies": [
+    "task_001"
+  ],
+  "completed_at": "2025-07-21T05:39:07.753839",
+  "output_files": [
+    "task_006_ui_ux_wireframing_and_prototyping/implementation.py"
+  ]
+}

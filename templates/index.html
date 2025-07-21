@@ -1,0 +1,2464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Interface</title>
+    <!-- Prism.js for syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-html.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --border-color: #e2e8f0;
+            --border-hover: #cbd5e1;
+            --text-primary: #0f172a;
+    <link href="/static/css/style.css" rel="stylesheet">
+            color: var(--text-primary);
+        }
+
+        .connection-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #10b981, #34d399);
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 28px;
+        }
+
+        .sidebar-section h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .session-list, .file-tree {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .session-item, .file-item {
+            padding: 10px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .session-item:hover, .file-item:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+            transform: translateX(2px);
+        }
+
+        .session-item.active {
+            background: var(--gradient-primary);
+            color: white;
+            font-weight: 500;
+            box-shadow: var(--shadow-md);
+        }
+
+        .file-item.selected {
+            background: var(--active-bg);
+            color: var(--accent-blue);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .file-tree .directory {
+            margin-bottom: 6px;
+        }
+
+        .file-tree .directory > .file-item {
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .file-tree .directory .file-tree-submenu { /* Changed from .file-tree */
+            padding-left: 20px;
+            border-left: 2px solid var(--border-color);
+            margin-left: 10px;
+        }
+        .file-tree .directory.collapsed .file-tree-submenu {
+            display: none;
+        }
+
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .content-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: linear-gradient(90deg, var(--bg-secondary), var(--bg-tertiary));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+        }
+
+        .content-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .content-body {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Welcome View */
+        .welcome-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center; /* Center content vertically */
+            text-align: center;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+            padding: 2rem;
+            position: relative;
+        }
+
+        body.dark-mode .welcome-view {
+            background: linear-gradient(135deg, #2d3748 0%, #1a202c 100%);
+        }
+
+        .welcome-view::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+                               radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        body.dark-mode .welcome-view::before {
+            background-image: radial-gradient(circle at 20% 80%, rgba(99, 179, 237, 0.1) 0%, transparent 50%),
+                              radial-gradient(circle at 80% 20%, rgba(164, 130, 240, 0.1) 0%, transparent 50%);
+        }
+
+        .welcome-view > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .welcome-view h1 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .welcome-view p {
+            font-size: 18px;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        .chat-interface {
+            width: 100%;
+            max-width: 800px;
+            margin-top: 2rem; /* Adjusted for centering */
+        }
+
+        .welcome-message-prompt { /* New style for the prompt */
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+
+        .chat-messages-welcome {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 1.5rem;
+            padding: 1.5rem;
+            background: var(--bg-primary);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 2rem;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .quick-action-btn {
+            padding: 16px 24px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            color: var(--text-primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-action-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: var(--gradient-primary);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .quick-action-btn:hover {
+            color: white;
+            border-color: transparent;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .quick-action-btn:hover::before {
+            left: 0;
+        }
+
+        /* Split View */
+        .split-view {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .chat-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border-color);
+            position: relative;
+            min-width: 400px;
+        }
+
+        .code-panel {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-secondary);
+            min-width: 300px;
+        }
+
+        /* Chat Panel */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            padding-bottom: 140px;
+        }
+
+        .message {
+            margin-bottom: 24px;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .agent-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .agent-badge.pm_agent { 
+            background: linear-gradient(135deg, #f59e0b, #fbbf24); 
+            color: white; 
+        }
+        .agent-badge.dev_agent { 
+            background: linear-gradient(135deg, #3b82f6, #60a5fa); 
+            color: white; 
+        }
+        .agent-badge.qa_agent { 
+            background: linear-gradient(135deg, #10b981, #34d399); 
+            color: white; 
+        }
+        .agent-badge.user { 
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa); 
+            color: white; 
+        }
+
+        .message-time {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .message-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            position: relative;
+        }
+
+        .message-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--gradient-primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        /* Code Panel */
+        .code-panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-primary);
+        }
+
+        .file-tabs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .file-tab {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            background: transparent;
+            border: 1px solid transparent;
+            font-weight: 500;
+        }
+
+        .file-tab.active {
+            background: var(--accent-blue);
+            color: white;
+            box-shadow: var(--shadow-md);
+        }
+
+        .file-tab:hover:not(.active) {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .code-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .code-action-btn {
+            padding: 8px 12px;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            font-size: 16px;
+        }
+
+        .code-action-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+
+        .code-content {
+            flex: 1;
+            overflow: auto;
+            background: var(--bg-primary);
+        }
+
+        .code-content pre {
+            margin: 0;
+            padding: 24px;
+            font-family: var(--font-mono);
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        /* Input Area */
+        .input-area {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 24px;
+            background: linear-gradient(to top, var(--bg-primary) 90%, transparent 100%);
+            z-index: 10;
+        }
+
+        .input-container {
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: var(--shadow-lg);
+            transition: border-color 0.3s ease;
+        }
+
+        .input-container:focus-within {
+            border-color: var(--accent-blue);
+        }
+
+        .input-field {
+            width: 100%;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            font-size: 16px;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .agent-selector {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .agent-btn {
+            padding: 8px 16px;
+            background: transparent;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .agent-btn:hover {
+            background: var(--hover-bg);
+            color: var(--text-primary);
+        }
+
+        .agent-btn.active {
+            background: var(--gradient-primary);
+            color: white;
+            border-color: transparent;
+        }
+
+        .agent-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .send-btn {
+            padding: 12px 24px;
+            background: var(--gradient-primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: var(--shadow-md);
+        }
+
+        .send-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Loading state for buttons */
+        .send-btn.loading {
+            cursor: not-allowed;
+            opacity: 0.7;
+            position: relative;
+        }
+
+        .send-btn.loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 16px;
+            height: 16px;
+            margin: -8px 0 0 -8px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .send-btn.loading span {
+            visibility: hidden; /* Hide text during loading */
+        }
+
+        /* Resize Handle */
+        .resize-handle {
+            width: 6px;
+            background: var(--border-color);
+            cursor: ew-resize;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .resize-handle:hover {
+            background: var(--accent-blue);
+        }
+
+        .resize-handle::before {
+            content: '';
+            position: absolute;
+            left: -4px;
+            right: -4px;
+            top: 0;
+            bottom: 0;
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, var(--border-color), var(--border-hover));
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, var(--accent-blue), #4493f8);
+        }
+
+        /* Status Indicators */
+        .status-indicator {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.warning {
+            background: var(--accent-orange);
+        }
+
+        .status-dot.error {
+            background: var(--accent-red);
+        }
+
+        /* Loading Animation (general) */
+        .loading-overlay-general { /* Renamed to avoid conflict */
+            position: relative;
+            pointer-events: none;
+        }
+
+        .loading-overlay-general::after { /* Renamed to avoid conflict */
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* --- Loaders and Overlays (from JS injectStyles) --- */
+        .loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.5); z-index: 1001;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            transition: opacity 0.3s; opacity: 0; pointer-events: none;
+        }
+        .loader-overlay.visible { opacity: 1; pointer-events: all; }
+        .spinner {
+            width: 50px; height: 50px; border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db; border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        /* @keyframes spin is already defined above */
+        .ui-dimmed { opacity: 0.6; pointer-events: none; }
+
+        /* --- Progress Bar (from JS injectStyles) --- */
+        #progress-bar-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 5px; background: #ddd; z-index: 1000;
+        }
+        #progress-bar {
+            width: 0%; height: 100%; background: #3498db;
+            transition: width 0.5s ease-out;
+        }
+        
+        /* --- Message Box (from JS injectStyles) --- */
+        #message-box {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            padding: 12px 24px; border-radius: 8px; color: white;
+            font-size: 16px; font-weight: 500; z-index: 1002;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            opacity: 0; transform: translate(-50%, -20px); transition: opacity 0.3s, transform 0.3s;
+        }
+        #message-box.visible { opacity: 1; transform: translate(-50%, 0); }
+        #message-box.info { background-color: #2E86C1; }
+        #message-box.success { background-color: #28A745; }
+        #message-box.warning { background-color: #F39C12; }
+        #message-box.error { background-color: #E74C3C; }
+
+        /* --- Confirmation Dialog (from JS injectStyles) --- */
+        #confirmation-dialog .dialog-content {
+            background: white; padding: 25px; border-radius: 8px; text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        body.dark-mode #confirmation-dialog .dialog-content {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+        #confirmation-dialog p { margin: 0 0 20px; color: #333; }
+        body.dark-mode #confirmation-dialog p {
+            color: var(--text-primary);
+        }
+        #confirmation-dialog .dialog-buttons button {
+            padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;
+            font-weight: bold; margin: 0 10px;
+        }
+        #confirm-btn { background-color: #E74C3C; color: white; }
+        #cancel-btn { background-color: #bdc3c7; color: #333; }
+        body.dark-mode #cancel-btn {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* --- Log Messages (from JS injectStyles) --- */
+        .log-entry.log-info { color: #85C1E9; }
+        .log-entry.log-warning { color: #F8C471; }
+        .log-entry.log-error { color: #F1948A; font-weight: bold; }
+        .log-entry.log-success { color: #7DCEA0; }
+
+        /* --- Agent Tabs (from JS injectStyles) --- */
+        .agent-tab.disabled {
+            color: #888; background-color: #f5f5f5; cursor: not-allowed;
+            pointer-events: none;
+        }
+        body.dark-mode .agent-tab.disabled {
+            background-color: var(--bg-tertiary);
+            color: var(--text-muted);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .left-sidebar {
+                width: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .left-sidebar {
+                width: 200px;
+            }
+            
+            .code-panel {
+                width: 60%;
+            }
+            
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+            
+            .agent-selector {
+                flex-direction: column;
+                gap: 4px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .left-sidebar {
+                width: 100%;
+                height: 200px;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            
+            .sidebar-content {
+                display: flex;
+                gap: 16px;
+                overflow-x: auto;
+            }
+            
+            .sidebar-section {
+                min-width: 200px;
+            }
+            
+            .split-view {
+                flex-direction: column;
+            }
+            
+            .chat-panel {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                height: 60%;
+            }
+            
+            .code-panel {
+                width: 100%;
+                height: 40%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Left Sidebar -->
+        <aside class="left-sidebar">
+            <div class="sidebar-header">
+                <div class="connection-indicator" title="Connected"></div>
+                <div class="sidebar-title">AI Development Suite</div>
+                <button id="theme-toggle" class="code-action-btn" title="Toggle Theme">💡</button>
+            </div>
+            
+            <div class="sidebar-content">
+                <div class="sidebar-section">
+                    <h3>Active Projects</h3>
+                    <div class="session-list" id="session-list">
+                        <div class="session-item active" data-session-id="web-task-manager">
+                            <span>🚀</span>
+                            <span>Web Task Manager</span>
+                        </div>
+                        <div class="session-item" data-session-id="mobile-app-prototype">
+                            <span>📱</span>
+                            <span>Mobile App Prototype</span>
+                        </div>
+                        <div class="session-item" data-session-id="api-integration">
+                            <span>🔧</span>
+                            <span>API Integration</span>
+                        </div>
+                        <div class="session-item" data-session-id="ui-component-library">
+                            <span>🎨</span>
+                            <span>UI Component Library</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-section">
+                    <h3>Generated Files</h3>
+                    <div class="file-tree" id="file-tree">
+                        <!-- Initial 'Welcome' file will be added by JS -->
+                        <!-- Other files will be dynamically added here -->
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <div class="content-header">
+                <div class="breadcrumb" id="breadcrumb">
+                    <span>Projects</span>
+                    <span class="breadcrumb-separator">/</span>
+                    <span>Web Task Manager</span>
+                </div>
+                <div class="content-actions">
+                    <button class="code-action-btn" title="Project Settings">⚙️</button>
+                    <button class="code-action-btn" title="Export Project">📤</button>
+                    <button class="code-action-btn" title="Share">🔗</button>
+                </div>
+            </div>
+
+            <div class="content-body">
+                <!-- Welcome View -->
+                <div id="welcome-view" class="welcome-view">
+                    <p class="welcome-message-prompt">What do you want to build today?</p>
+                    
+                    <!-- Input Area for Welcome View -->
+                    <div class="chat-interface">
+                        <div class="chat-messages-welcome" id="welcome-chat-messages">
+                            <div class="message">
+                                <div class="message-header">
+                                    <span class="agent-badge pm_agent">PM AGENT</span>
+                                    <span class="message-time">Ready</span>
+                                </div>
+                                <div class="message-content">Welcome! I'm here to help you plan and structure your project. What would you like to build today?</div>
+                            </div>
+                        </div>
+                        <div class="input-container">
+                            <textarea 
+                                id="welcome-input" 
+                                class="input-field" 
+                                placeholder="Describe your project requirements or ask a question..."
+                                rows="3"
+                            ></textarea>
+                            <div class="input-toolbar">
+                                <div class="agent-selector" id="welcome-agent-selector">
+                                    <button class="agent-btn active agent-tab" data-agent="pm_agent">PM</button>
+                                    <button class="agent-btn agent-tab" data-agent="dev_agent">Dev</button>
+                                    <button class="agent-btn agent-tab" data-agent="qa_agent">QA</button>
+                                    <button class="agent-btn disabled agent-tab">Ops</button>
+                                </div>
+                                <button class="send-btn" id="start-project-btn">
+    <span>Start Project ✨</span>
+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Split View (initially hidden) -->
+                <div id="split-view" class="split-view hidden">
+                    <div class="chat-panel">
+                        <div class="chat-messages" id="chat-messages">
+                            <!-- All agent and user messages will be dynamically loaded here -->
+                        </div>
+                        <div class="input-area">
+                            <div class="input-container">
+                                <textarea
+                                    id="chat-input"
+                                    class="input-field"
+                                    placeholder="Type your message here..."
+                                    rows="1"
+                                ></textarea>
+                                <div class="input-toolbar">
+                                    <div class="agent-selector" id="chat-agent-selector">
+                                        <button class="agent-btn active agent-tab" data-agent="pm_agent">PM</button>
+                                        <button class="agent-btn agent-tab" data-agent="dev_agent">Dev</button>
+                                        <button class="agent-btn agent-tab" data-agent="qa_agent">QA</button>
+                                        <button class="agent-btn disabled agent-tab">Ops</button>
+                                    </div>
+                                    <button class="send-btn" id="chat-send-btn">Send ✨</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="resize-handle"></div>
+                    <div class="code-panel">
+                        <!-- File Viewer Panel (initially hidden) -->
+                        <div id="file-viewer-panel" class="hidden" style="flex: 1; display: flex; flex-direction: column; background: var(--bg-primary);">
+                            <div class="code-panel-header">
+                                <span id="file-viewer-filename" style="font-family: var(--font-mono); font-weight: 500; color: var(--text-primary);"></span>
+                                <div class="code-actions">
+                                    <button class="code-action-btn" title="Download File" id="download-file-btn">💾</button>
+                                    <button class="code-action-btn" title="Close File Viewer" id="close-file-viewer-btn">✖️</button>
+                                </div>
+                            </div>
+                            <div class="code-content" id="file-content-display">
+                                <!-- File content will be rendered here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Agent Output Panel (initially visible when split-view is active, unless file viewer is open) -->
+                        <div id="agent-output-panel" style="flex: 1; display: flex; flex-direction: column;">
+                            <div class="code-panel-header">
+                                <div class="file-tabs" id="agent-output-tabs">
+                                    <!-- This section is just for visual representation of agent outputs,
+                                         actual content goes to chat-messages.
+                                         The PlanningDashboard JS will manage the active agent tab. -->
+                                    <button class="file-tab active" data-agent="pm_agent">PM Output</button>
+                                    <button class="file-tab" data-agent="dev_agent">Dev Output</button>
+                                    <button class="file-tab" data-agent="qa_agent">QA Output</button>
+                                </div>
+                            </div>
+                            <!-- All agent outputs will be streamed into chat-messages, not here.
+                                 This panel will visually represent the currently active agent's 'focus' -->
+                            <div class="code-content" style="padding: 24px;">
+                                <p style="color: var(--text-muted);">Agent outputs will appear in the chat panel on the left.</p>
+                                <p style="color: var(--text-muted);">This area is for future detailed agent logs or specific structured outputs.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/static/js/PlanningDashboard.js"></script>
+    <script>
+        class PlanningDashboard {
+    constructor() {
+        this.ws = null;
+        this.mockWs = null; // Store a reference to the MockWebSocket
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = 5;
+        this.reconnectInterval = 3000; // 3 seconds
+
+        this.projectFiles = {}; // Stores file path -> {name, path, content, type}
+        this.activeFile = null; // Currently viewed file path
+        this.sessionMessages = {
+            'web-task-manager': [] // Example session ID
+        };
+        this.activeAgentForSending = 'pm_agent'; // Default agent for sending messages
+
+        // UI Elements
+        this.welcomeView = document.getElementById('welcome-view');
+        this.splitView = document.getElementById('split-view');
+        this.chatPanel = document.getElementById('chat-panel');
+        this.fileViewerPanel = document.getElementById('file-viewer-panel');
+        this.startBtn = document.getElementById('start-project-btn');
+        this.requirementsInput = document.getElementById('welcome-input');
+        this.welcomeChatMessages = document.getElementById('welcome-chat-messages');
+        this.chatMessages = document.getElementById('chat-messages');
+        this.chatInput = document.getElementById('chat-input');
+        this.chatSendBtn = document.getElementById('chat-send-btn');
+        this.fileTree = document.getElementById('file-tree');
+        this.fileContentDisplay = document.getElementById('file-content-display');
+        this.fileViewerFilename = document.getElementById('file-viewer-filename');
+        this.downloadFileBtn = document.getElementById('download-file-btn');
+        this.backToChatBtn = document.getElementById('back-to-chat-btn');
+        this.connectionStatus = document.getElementById('connection-status');
+        this.progressBar = document.getElementById('progress-bar');
+        this.logsContainer = document.getElementById('logs-container');
+        this.messageBox = document.getElementById('message-box');
+        this.confirmationDialog = document.getElementById('confirmation-dialog');
+        this.themeToggle = document.getElementById('theme-toggle');
+        this.clearDataBtn = document.getElementById('clear-data-btn');
+        this.welcomeAgentSelector = document.getElementById('welcome-agent-selector');
+        this.chatAgentSelector = document.getElementById('chat-agent-selector');
+        this.breadcrumb = document.getElementById('breadcrumb');
+
+        this.initializeEventListeners();
+        this.connectWebSocket();
+        this.loadPersistentState();
+        this.initializeMockFiles(); // For demonstration
+    }
+
+    initializeEventListeners() {
+        if (this.startBtn) {
+            this.startBtn.addEventListener('click', () => this.handleStartProject());
+        }
+        if (this.requirementsInput) {
+            this.requirementsInput.addEventListener('input', (e) => {
+                this.autoResizeTextarea(e.target);
+                localStorage.setItem('requirementsInput', e.target.value); // Save content
+            });
+            this.requirementsInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.handleStartProject();
+                }
+            });
+        }
+
+        if (this.chatSendBtn) {
+            this.chatSendBtn.addEventListener('click', () => this.handleSendMessage());
+        }
+        if (this.chatInput) {
+            this.chatInput.addEventListener('input', (e) => this.autoResizeTextarea(e.target));
+            this.chatInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.handleSendMessage();
+                }
+            });
+        }
+
+        if (this.fileTree) {
+            this.fileTree.addEventListener('click', (e) => {
+                const fileItem = e.target.closest('.file-item');
+                if (fileItem && fileItem.dataset.path && fileItem.dataset.path.endsWith('/')) { // Directory
+                    // Optional: Implement directory collapse/expand
+                    console.log('Clicked directory:', fileItem.dataset.path);
+                } else if (fileItem && fileItem.dataset.path) { // File
+                    this.showFileContent(fileItem.dataset.path);
+                    // Update selection
+                    this.fileTree.querySelectorAll('.file-item').forEach(item => {
+                        item.classList.remove('selected');
+                    });
+                    fileItem.classList.add('selected');
+                }
+            });
+        }
+
+        if (this.backToChatBtn) {
+            this.backToChatBtn.addEventListener('click', () => {
+                if (this.fileViewerPanel) this.fileViewerPanel.classList.add('hidden');
+                if (this.chatPanel) this.chatPanel.classList.remove('hidden');
+            });
+        }
+
+        if (this.downloadFileBtn) {
+            this.downloadFileBtn.addEventListener('click', () => this.downloadActiveFile());
+        }
+
+        if (this.themeToggle) {
+            this.themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+            });
+        }
+
+        if (this.clearDataBtn) {
+            this.clearDataBtn.addEventListener('click', () => {
+                this.showConfirmation('Are you sure you want to clear all project data and chat history? This cannot be undone.', () => {
+                    localStorage.clear();
+                    this.projectFiles = {};
+                    this.sessionMessages = { 'web-task-manager': [] };
+                    this.clearProjectFiles();
+                    this.clearAgentOutputs();
+                    if (this.requirementsInput) this.requirementsInput.value = '';
+                    this.showMessage('All data cleared!', 'success');
+                    // Reset UI to welcome view
+                    if (this.welcomeView) this.welcomeView.classList.remove('hidden');
+                    if (this.splitView) this.splitView.classList.add('hidden');
+                    this.updateBreadcrumb('Welcome');
+                });
+            });
+        }
+
+        // Agent selection for welcome view
+        if (this.welcomeAgentSelector) {
+            this.welcomeAgentSelector.addEventListener('click', (e) => {
+                const btn = e.target.closest('.agent-btn');
+                if (btn) {
+                    this.setActiveAgentForSending(btn.dataset.agent);
+                }
+            });
+        }
+
+        // Agent selection for chat view
+        if (this.chatAgentSelector) {
+            this.chatAgentSelector.addEventListener('click', (e) => {
+                const btn = e.target.closest('.agent-btn');
+                if (btn) {
+                    this.setActiveAgentForSending(btn.dataset.agent);
+                }
+            });
+        }
+    }
+
+    // --- WebSocket Handling ---
+    connectWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+const wsHost = window.location.host;
+const wsUrl = `${wsProtocol}://${wsHost}/ws`;
+
+        if (typeof WebSocket === 'undefined') {
+            this.addLogMessage('WebSocket is not supported in this browser. Using mock WebSocket.', 'warning');
+            this.mockWs = new MockWebSocket(wsUrl, this);
+            this.ws = this.mockWs; // Assign mockWs to ws for consistent access
+        } else {
+            this.ws = new WebSocket(wsUrl);
+        }
+
+        this.ws.onopen = () => {
+            this.addLogMessage('WebSocket connected.', 'success');
+            this.updateConnectionStatus(true);
+            this.reconnectAttempts = 0;
+            // Send initial message if necessary, e.g., to request project state
+            // this.ws.send(JSON.stringify({ type: 'get_project_state' }));
+        };
+
+        this.ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                this.onWebSocketMessage(data);
+            } catch (error) {
+                console.error('Failed to parse WebSocket message:', error);
+                this.addLogMessage('Failed to parse WebSocket message.', 'error');
+            }
+        };
+
+        this.ws.onclose = () => {
+            this.addLogMessage('WebSocket disconnected.', 'error');
+            this.updateConnectionStatus(false);
+            // Attempt to reconnect if not explicitly closed by user or max attempts reached
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                this.attemptReconnect();
+            } else {
+                this.showMessage('Connection lost. Please refresh or check server.', 'error', 0); // Persist error message
+            }
+        };
+
+        this.ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+            this.addLogMessage('WebSocket error occurred.', 'error');
+            this.updateConnectionStatus(false);
+        };
+    }
+
+    onWebSocketMessage(data) {
+        console.log('Received:', data);
+
+        switch (data.type) {
+            case 'agent_output':
+                const messagesContainer = this.chatPanel.classList.contains('hidden') ? this.welcomeChatMessages : this.chatMessages;
+                this.appendMessage(messagesContainer, {
+                    agent: data.agent_type,
+                    content: data.content,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+                break;
+            case 'file_generated':
+            case 'file_updated':
+                this.projectFiles[data.file_path] = {
+                    name: data.file_name,
+                    path: data.file_path,
+                    content: data.content || null, // Content might not be sent with file_generated
+                    type: 'file'
+                };
+                this.renderFileTree();
+                this.addLogMessage(`File ${data.type.replace('_', ' ')}: ${data.file_path}`, 'info');
+                // Auto-open new files or significant updates
+                if (data.type === 'file_generated' && data.should_open !== false) {
+                    this.showFileContent(data.file_path);
+                }
+                break;
+            case 'file_deleted':
+                delete this.projectFiles[data.file_path];
+                this.renderFileTree();
+                this.addLogMessage(`File deleted: ${data.file_path}`, 'warning');
+                if (this.activeFile === data.file_path) {
+                    this.fileContentDisplay.innerHTML = '<div class="empty-state">File deleted. Select another file.</div>';
+                    this.activeFile = null;
+                }
+                break;
+            case 'file_content_response':
+                if (this.projectFiles[data.file_path]) {
+                    this.projectFiles[data.file_path].content = data.content;
+                    this.renderFileContent(data.file_path);
+                    this.addLogMessage(`Loaded content for ${data.file_path}`, 'info');
+                }
+                break;
+            case 'planning_started':
+                this.addLogMessage('Project planning started!', 'info');
+                this.updateProgress(0, 'Planning started');
+                this._setUIInteraction(false); // Disable UI during planning
+                break;
+            case 'planning_completed':
+                this.addLogMessage('Project planning completed successfully!', 'success');
+                this.updateProgress(100, 'Planning completed');
+                this._setUIInteraction(true); // Re-enable UI after planning
+                this.showMessage('Project setup complete! You can now interact with agents.', 'success', 5000);
+                break;
+            case 'progress':
+                this.updateProgress(data.progress, data.message);
+                break;
+            case 'log_message':
+                this.addLogMessage(data.message, data.log_type);
+                break;
+            case 'error':
+                this.addLogMessage(`Error: ${data.message}`, 'error');
+                this.showMessage(`Error: ${data.message}`, 'error');
+                this._setUIInteraction(true); // Re-enable UI on error
+                break;
+            case 'project_state': // Initial state received from backend
+                this.projectFiles = data.files || {};
+                this.renderFileTree();
+                this.addLogMessage('Received initial project state.', 'info');
+                break;
+            default:
+                this.addLogMessage(`Unknown message type: ${data.type}`, 'warning');
+                console.warn('Unknown message type received:', data);
+        }
+    }
+
+    // --- Chat & Input Handling ---
+    appendMessage(container, message) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('chat-message', message.agent);
+
+        let agentName = '';
+        let agentAvatar = '';
+
+        if (message.agent === 'user') {
+            agentName = 'You';
+            agentAvatar = '👤'; // User icon
+        } else if (message.agent === 'pm_agent') {
+            agentName = 'PM Agent';
+            agentAvatar = '📊'; // Project Manager icon
+        } else if (message.agent === 'dev_agent') {
+            agentName = 'Dev Agent';
+            agentAvatar = '💻'; // Developer icon
+        } else if (message.agent === 'qa_agent') {
+            agentName = 'QA Agent';
+            agentAvatar = '🔍'; // QA icon
+        } else if (message.agent === 'architect_agent') {
+            agentName = 'Architect Agent';
+            agentAvatar = '🏗️'; // Architect icon
+        } else {
+            agentName = 'System';
+            agentAvatar = '⚙️'; // Default/System icon
+        }
+
+        messageElement.innerHTML = `
+            <div class="message-header">
+                <span class="agent-avatar">${agentAvatar}</span>
+                <span class="agent-name">${agentName}</span>
+                <span class="message-time">${message.time}</span>
+            </div>
+            <div class="message-content">${this.escapeHtml(message.content)}</div>
+        `;
+        container.appendChild(messageElement);
+        container.scrollTop = container.scrollHeight;
+
+        // Store in session messages
+        const sessionId = container === this.welcomeChatMessages ? 'welcome-chat' : 'web-task-manager';
+        if (!this.sessionMessages[sessionId]) {
+            this.sessionMessages[sessionId] = [];
+        }
+        this.sessionMessages[sessionId].push(message);
+    }
+
+    async handleSendMessage() {
+        const messageInput = this.chatInput;
+        const messagesContainer = this.chatMessages;
+        const sendButton = this.chatSendBtn;
+
+        const messageText = messageInput.value.trim();
+        if (!messageText) {
+            this.showMessage('Please enter a message.', 'warning');
+            return;
+        }
+
+        this.appendMessage(messagesContainer, {
+            agent: 'user',
+            content: messageText,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        messageInput.value = '';
+        this.autoResizeTextarea(messageInput);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        if (sendButton) {
+            sendButton.classList.add('loading');
+            sendButton.disabled = true;
+            const buttonText = sendButton.querySelector('span');
+            if (buttonText) {
+                buttonText.textContent = 'Sending...';
+            }
+            console.log('Loading state added.');
+        }
+
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            const payload = {
+                type: 'user_message',
+                agent: this.activeAgentForSending,
+                content: messageText
+            };
+            this.ws.send(JSON.stringify(payload));
+            this._setUIInteraction(false); // Disable UI while waiting for AI response
+        } else {
+            this.addLogMessage('WebSocket is not connected. Cannot send message.', 'error');
+            this.showMessage('Not connected to the server. Please check your connection.', 'error');
+            // Simulate AI response for disconnected state after a delay
+            setTimeout(() => {
+                this.appendMessage(messagesContainer, {
+                    agent: this.activeAgentForSending,
+                    content: `(Offline) Sorry, I'm currently disconnected. I received "${messageText}".`,
+                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                });
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                if (sendButton) {
+                    sendButton.classList.remove('loading');
+                    sendButton.disabled = false;
+                    const buttonText = sendButton.querySelector('span');
+                    if (buttonText) {
+                        buttonText.textContent = 'Send ✨';
+                    }
+                }
+            }, 1000);
+        }
+    }
+
+
+    async handleStartProject() {
+        const messageInput = this.requirementsInput;
+        const messagesContainer = this.welcomeChatMessages;
+        const sendButton = this.startBtn;
+
+        const messageText = messageInput.value.trim();
+        if (!messageText) {
+            this.showMessage('Please enter your project requirements.', 'warning');
+            return;
+        }
+
+        this.appendMessage(messagesContainer, {
+            agent: 'user',
+            content: messageText,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        });
+        messageInput.value = '';
+        this.autoResizeTextarea(messageInput);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        if (sendButton) {
+            sendButton.classList.add('loading');
+            sendButton.disabled = true;
+            const buttonText = sendButton.querySelector('span');
+            if (buttonText) {
+                buttonText.textContent = 'Starting...';
+            }
+            console.log('Loading state added.');
+        }
+
+        const isInitialProjectStart = messagesContainer === this.welcomeChatMessages;
+
+        // THIS IS THE FIX: Send the message to trigger planning BEFORE the simulated response
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ type: 'start_planning', requirements: messageText }));
+            this._setUIInteraction(false); // Disable UI while planning is ongoing
+        } else {
+            this.addLogMessage('WebSocket is not connected. Simulating planning directly (if mockWs available).', 'warning');
+            if (this.mockWs) {
+                // If using MockWebSocket, trigger its planning sequence directly
+                this.mockWs.simulatePlanningSequence();
+            } else {
+                this.addLogMessage('No active WebSocket or mock WebSocket to simulate planning.', 'error');
+            }
+            this._setUIInteraction(false); // Disable UI during simulated planning as well
+        }
+
+        // The timeout below is for the *immediate* AI acknowledgement,
+        // not the long-running planning process.
+        setTimeout(() => {
+            console.log('Simulating AI response and removing initial loading state.');
+            const aiAgent = this.activeAgentForSending;
+            const aiResponseContent = isInitialProjectStart
+                ? `Okay, I've received your project request: "${messageText}". Let's get this project started! I'll now transition to the main development interface.`
+                : `Thanks for your input! I'm processing "${messageText}".`;
+
+            this.appendMessage(messagesContainer, {
+                agent: aiAgent,
+                content: aiResponseContent,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Note: The send button will be re-enabled by the 'planning_completed' message
+            // or by an 'error' message from the WebSocket handler (_setUIInteraction(true)).
+            // This timeout only removes the *initial* "Starting..." state.
+            if (sendButton) {
+                sendButton.classList.remove('loading');
+                // Don't enable the button here, _setUIInteraction handles it
+                // sendButton.disabled = false;
+                const buttonText = sendButton.querySelector('span');
+                if (buttonText) {
+                    buttonText.textContent = isInitialProjectStart ? 'Start Project ✨' : 'Send ✨';
+                }
+                console.log('Initial loading state removed.');
+            }
+
+            if (isInitialProjectStart) {
+                if (this.welcomeView) this.welcomeView.classList.add('hidden');
+                if (this.splitView) this.splitView.classList.remove('hidden');
+                if (this.chatPanel) this.chatPanel.classList.remove('hidden');
+                if (this.fileViewerPanel) this.fileViewerPanel.classList.add('hidden');
+                this.renderSessionMessages('web-task-manager');
+                this.updateBreadcrumb('Web Task Manager');
+                console.log('Transitioned to split view.');
+            }
+        }, 1500); // Short delay for initial UI feedback
+    }
+
+    autoResizeTextarea(textarea) {
+        if (textarea && textarea.style) {
+            textarea.style.height = 'auto';
+            textarea.style.height = textarea.scrollHeight + 'px';
+        }
+    }
+
+    async showFileContent(filePath) {
+        this.activeFile = filePath;
+
+        if (this.welcomeView) this.welcomeView.classList.add('hidden');
+        if (this.chatPanel) this.chatPanel.classList.add('hidden');
+        if (this.fileViewerPanel) this.fileViewerPanel.classList.remove('hidden');
+
+        if (this.fileViewerFilename) {
+            this.fileViewerFilename.textContent = this.projectFiles[filePath]?.name || filePath;
+        }
+
+        if (this.projectFiles[filePath]?.content) {
+            this.renderFileContent(filePath);
+        } else {
+            if (this.fileContentDisplay) { // Changed from this.ContentDisplay to this.fileContentDisplay
+                this.fileContentDisplay.innerHTML = '<div class="loading-spinner">Loading file content...</div>';
+            }
+
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                const payload = {
+                    type: 'get_file_content',
+                    file_path: filePath
+                };
+                this.ws.send(JSON.stringify(payload));
+            } else {
+                // Fallback for offline mode or mock content if WebSocket is not active
+                setTimeout(() => {
+                    if (this.projectFiles[filePath]) {
+                        this.projectFiles[filePath].content = `// Mock content for ${filePath}\n\n// This is placeholder content\nconsole.log('Hello from ${filePath}');`;
+                        this.renderFileContent(filePath);
+                    } else {
+                        this.fileContentDisplay.innerHTML = `<div class="empty-state">Could not load mock content for ${filePath}.</div>`;
+                        this.addLogMessage(`Could not load mock content for ${filePath}. File not found in projectFiles.`, 'error');
+                    }
+                }, 500);
+            }
+        }
+
+        if (this.downloadFileBtn) {
+            this.downloadFileBtn.classList.remove('hidden');
+        }
+    }
+
+    renderFileContent(filePath) {
+        if (!this.fileContentDisplay || !this.projectFiles[filePath]) {
+            console.error('Cannot render file content - missing elements or file data');
+            return;
+        }
+
+        const file = this.projectFiles[filePath];
+        const content = file.content || '';
+
+        // Detect file type and apply appropriate syntax highlighting
+        const extension = filePath.split('.').pop().toLowerCase();
+        let language = 'text';
+
+        const languageMap = {
+            'js': 'javascript',
+            'jsx': 'javascript',
+            'ts': 'typescript',
+            'tsx': 'typescript',
+            'py': 'python',
+            'html': 'html',
+            'css': 'css',
+            'scss': 'scss',
+            'json': 'json',
+            'md': 'markdown',
+            'yml': 'yaml',
+            'yaml': 'yaml',
+            'xml': 'xml',
+            'sql': 'sql',
+            'sh': 'bash',
+            'bash': 'bash'
+        };
+
+        if (languageMap[extension]) {
+            language = languageMap[extension];
+        }
+
+        // Create syntax-highlighted content
+        this.fileContentDisplay.innerHTML = `
+            <div class="file-content-wrapper">
+                <div class="file-info">
+                    <span class="file-type">${extension.toUpperCase()}</span>
+                    <span class="file-size">${this.formatFileSize(content.length)}</span>
+                </div>
+                <pre><code class="language-${language}">${this.escapeHtml(content)}</code></pre>
+            </div>
+        `;
+
+        // Apply syntax highlighting if Prism.js is available
+        if (window.Prism) {
+            window.Prism.highlightAllUnder(this.fileContentDisplay);
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    downloadActiveFile() {
+        if (!this.activeFile || !this.projectFiles[this.activeFile]) {
+            this.showMessage('No active file to download', 'warning');
+            return;
+        }
+
+        const file = this.projectFiles[this.activeFile];
+        const blob = new Blob([file.content || ''], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = file.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        this.showMessage(`Downloaded ${file.name}`, 'success');
+    }
+
+    renderFileTree() {
+        if (!this.fileTree) {
+            console.error('File tree container not found');
+            return;
+        }
+
+        // Group files by directory
+        const fileStructure = {};
+
+        Object.values(this.projectFiles).forEach(file => {
+            if (!file.path) return;
+
+            const parts = file.path.split('/');
+            let current = fileStructure;
+
+            for (let i = 0; i < parts.length - 1; i++) {
+                const dir = parts[i];
+                if (!current[dir]) {
+                    current[dir] = { type: 'directory', children: {} };
+                }
+                current = current[dir].children;
+            }
+
+            const fileName = parts[parts.length - 1];
+            current[fileName] = {
+                type: 'file',
+                ...file
+            };
+        });
+
+        this.fileTree.innerHTML = this.renderFileStructure(fileStructure);
+    }
+
+    renderFileStructure(structure, level = 0) {
+        let html = '';
+
+        // Sort directories first, then files, alphabetically
+        const sortedEntries = Object.entries(structure).sort(([nameA, itemA], [nameB, itemB]) => {
+            if (itemA.type === 'directory' && itemB.type !== 'directory') return -1;
+            if (itemA.type !== 'directory' && itemB.type === 'directory') return 1;
+            return nameA.localeCompare(nameB);
+        });
+
+        sortedEntries.forEach(([name, item]) => {
+            // const indent = '&nbsp;&nbsp;'.repeat(level); // Using non-breaking spaces for indent
+            const indentStyle = `padding-left: ${level * 20}px;`;
+
+            if (item.type === 'directory') {
+                html += `
+                    <div class="file-item directory" style="${indentStyle}" data-path="${name}/">
+                        <i class="folder-icon">📁</i>
+                        <span>${name}</span>
+                    </div>
+                `;
+                html += this.renderFileStructure(item.children, level + 1);
+            } else {
+                const extension = name.split('.').pop().toLowerCase();
+                const icon = this.getFileIcon(extension);
+                const isSelected = this.activeFile === item.path ? 'selected' : '';
+
+                html += `
+                    <div class="file-item ${isSelected}" style="${indentStyle}" data-path="${item.path}">
+                        <i class="file-icon">${icon}</i>
+                        <span>${name}</span>
+                    </div>
+                `;
+            }
+        });
+
+        return html;
+    }
+
+    getFileIcon(extension) {
+        const iconMap = {
+            'js': '📄',
+            'jsx': '⚛️',
+            'ts': '📘',
+            'tsx': '⚛️',
+            'py': '🐍',
+            'html': '🌐',
+            'css': '🎨',
+            'scss': '🎨',
+            'json': '📊',
+            'md': '📝',
+            'yml': '⚙️',
+            'yaml': '⚙️',
+            'xml': '📄',
+            'sql': '🗃️',
+            'sh': '⚡',
+            'bash': '⚡',
+            'txt': '📄',
+            'log': '📋',
+            'env': '🔑', // Added for environment files
+            'gitignore': '🚫', // Added for .gitignore
+            'npmignore': '🚫',
+            'dockerfile': '🐳', // Added for Dockerfile
+            'lock': '🔒', // For package-lock.json, yarn.lock etc.
+            'config': '⚙️', // General config files
+            'editorconfig': '⚙️',
+            'prettierrc': '💅', // For Prettier config
+            'eslintrc': '📏', // For ESLint config
+            // Common image types
+            'png': '🖼️',
+            'jpg': '🖼️',
+            'jpeg': '🖼️',
+            'gif': '🖼️',
+            'svg': '🎨',
+        };
+
+        return iconMap[extension] || '📄';
+    }
+
+    renderSessionMessages(sessionId) {
+        if (!this.chatMessages) {
+            console.error('Chat messages container not found');
+            return;
+        }
+
+        this.chatMessages.innerHTML = '';
+
+        if (this.sessionMessages[sessionId]) {
+            this.sessionMessages[sessionId].forEach(message => {
+                this.appendMessage(this.chatMessages, message);
+            });
+        }
+
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+
+    setActiveAgentForSending(agentType) {
+        this.activeAgentForSending = agentType;
+
+        // Update both welcome and chat agent selectors
+        [this.welcomeAgentSelector, this.chatAgentSelector].forEach(selector => {
+            if (selector) {
+                selector.querySelectorAll('.agent-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.agent === agentType);
+                });
+            }
+        });
+
+        console.log(`Active agent for sending set to: ${agentType}`);
+    }
+
+    updateBreadcrumb(text) {
+        if (this.breadcrumb) {
+            this.breadcrumb.textContent = text;
+        }
+    }
+
+    clearProjectFiles() {
+        this.projectFiles = {};
+        if (this.fileTree) {
+            this.fileTree.innerHTML = '<div class="empty-state">No files generated yet</div>';
+        }
+        if (this.fileContentDisplay) {
+            this.fileContentDisplay.innerHTML = '<div class="empty-state">Select a file to view its content</div>';
+        }
+        this.activeFile = null; // Set to null instead of 'welcome'
+    }
+
+    clearAgentOutputs() {
+        if (this.chatMessages) {
+            this.chatMessages.innerHTML = '';
+        }
+        if (this.welcomeChatMessages) {
+            this.welcomeChatMessages.innerHTML = '';
+        }
+        this.sessionMessages = {
+            'web-task-manager': [],
+            'welcome-chat': []
+        };
+    }
+
+    // --- Connection & Status Management ---
+
+    attemptReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            this.addLogMessage('Max reconnection attempts reached.', 'error');
+            return;
+        }
+
+        this.reconnectAttempts++;
+        this.addLogMessage(`Reconnecting... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`, 'info');
+
+        setTimeout(() => {
+            this.connectWebSocket();
+        }, this.reconnectInterval);
+    }
+
+    updateConnectionStatus(connected) {
+        if (!this.connectionStatus) return;
+
+        if (connected) {
+            this.connectionStatus.textContent = '🟢 Connected';
+            this.connectionStatus.style.background = '#10b981';
+            this.connectionStatus.style.color = 'white';
+        } else {
+            this.connectionStatus.textContent = '🔴 Disconnected';
+            this.connectionStatus.style.background = '#ef4444';
+            this.connectionStatus.style.color = 'white';
+        }
+    }
+
+    updateProgress(progress, message = '') {
+        if (this.progressBar) {
+            this.progressBar.style.width = `${progress}%`;
+            this.progressBar.textContent = `${progress}%`;
+        }
+
+        if (message) {
+            this.addLogMessage(`Progress: ${message} (${progress}%)`, 'info');
+        }
+    }
+
+    // --- Utility Methods ---
+
+    addLogMessage(message, type = 'info') {
+        if (!this.logsContainer) return;
+
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.className = `log-entry log-${type}`;
+
+        const typeIcon = {
+            'info': 'ℹ️',
+            'success': '✅',
+            'warning': '⚠️',
+            'error': '❌'
+        }[type] || 'ℹ️';
+
+        logEntry.innerHTML = `
+            <span class="log-time">${timestamp}</span>
+            <span class="log-type">${typeIcon}</span>
+            <span class="log-message">${message}</span>
+        `;
+
+        this.logsContainer.appendChild(logEntry);
+        this.logsContainer.scrollTop = this.logsContainer.scrollHeight;
+
+        // Auto-hide logs after some time by reducing opacity
+        setTimeout(() => {
+            if (logEntry.parentNode) {
+                logEntry.style.opacity = '0.5';
+            }
+        }, 10000);
+
+        // Remove old logs to prevent memory issues
+        const logEntries = this.logsContainer.querySelectorAll('.log-entry');
+        if (logEntries.length > 100) {
+            logEntries[0].remove();
+        }
+    }
+
+    showMessage(message, type = 'info', duration = 3000) {
+        if (!this.messageBox) return;
+
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message-toast message-${type}`;
+        messageDiv.textContent = message;
+
+        this.messageBox.appendChild(messageDiv);
+
+        // Animate in
+        setTimeout(() => {
+            messageDiv.classList.add('show');
+        }, 10);
+
+        // Auto-remove
+        if (duration > 0) {
+            setTimeout(() => {
+                messageDiv.classList.remove('show');
+                setTimeout(() => {
+                    if (messageDiv.parentNode) {
+                        messageDiv.remove();
+                    }
+                }, 300);
+            }, duration);
+        }
+    }
+
+    showConfirmation(message, onConfirm, onCancel = null) {
+        if (!this.confirmationDialog) return;
+
+        this.confirmationDialog.innerHTML = `
+            <div class="confirmation-content">
+                <h3>Confirm Action</h3>
+                <p>${message}</p>
+                <div class="confirmation-buttons">
+                    <button class="btn btn-secondary" id="confirm-cancel">Cancel</button>
+                    <button class="btn btn-primary" id="confirm-ok">OK</button>
+                </div>
+            </div>
+        `;
+
+        this.confirmationDialog.classList.remove('hidden');
+
+        const cancelBtn = this.confirmationDialog.querySelector('#confirm-cancel');
+        const okBtn = this.confirmationDialog.querySelector('#confirm-ok');
+
+        cancelBtn.addEventListener('click', () => {
+            this.confirmationDialog.classList.add('hidden');
+            if (onCancel) onCancel();
+        });
+
+        okBtn.addEventListener('click', () => {
+            this.confirmationDialog.classList.add('hidden');
+            onConfirm();
+        });
+    }
+
+    loadPersistentState() {
+        // Load saved requirements
+        if (this.requirementsInput) {
+            const savedRequirements = localStorage.getItem('requirementsInput');
+            if (savedRequirements) {
+                this.requirementsInput.value = savedRequirements;
+                this.autoResizeTextarea(this.requirementsInput);
+            }
+        }
+
+        // Load theme preference
+        const darkMode = localStorage.getItem('darkMode') === 'true';
+        if (darkMode) {
+            document.body.classList.add('dark-mode');
+        }
+    }
+
+    initializeMockFiles() {
+        // Initialize with some mock files for demonstration
+        this.projectFiles = {
+            'src/index.js': {
+                name: 'index.js',
+                path: 'src/index.js',
+                content: `// Main application entry point
+// ...existing code...
+                `
+            }
+        };
+    }
+}
+
+// Optionally, initialize the dashboard if not already done elsewhere
+window.planningDashboard = new PlanningDashboard();
+</script>
+</body>
+</html>
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);`,
+                type: 'file'
+            },
+            'src/App.js': {
+                name: 'App.js',
+                path: 'src/App.js',
+                content: `// Main App component
+import React, { useState } from 'react';
+import TaskManager from './components/TaskManager';
+import './App.css';
+
+function App() {
+  const [tasks, setTasks] = useState([]);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Web Task Manager</h1>
+      </header>
+      <main>
+        <TaskManager tasks={tasks} setTasks={setTasks} />
+      </main>
+    </div>
+  );
+}
+
+export default App;`,
+                type: 'file'
+            },
+            'package.json': {
+                name: 'package.json',
+                path: 'package.json',
+                content: `{
+  "name": "web-task-manager",
+  "version": "1.0.0",
+  "description": "A modern web-based task management application",
+  "main": "index.js",
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}`,
+                type: 'file'
+            }
+        };
+
+        this.renderFileTree();
+    }
+
+    _setUIInteraction(enabled) {
+        // Enable/disable UI elements during planning
+        if (this.startBtn) {
+            this.startBtn.disabled = !enabled;
+            // Also reset text if enabling
+            if (enabled) {
+                const buttonText = this.startBtn.querySelector('span');
+                if (buttonText) {
+                    buttonText.textContent = 'Start Project ✨';
+                }
+            }
+        }
+        if (this.chatSendBtn) {
+            this.chatSendBtn.disabled = !enabled;
+             // Also reset text if enabling
+             if (enabled) {
+                const buttonText = this.chatSendBtn.querySelector('span');
+                if (buttonText) {
+                    buttonText.textContent = 'Send ✨';
+                }
+            }
+        }
+        if (this.requirementsInput) {
+            this.requirementsInput.disabled = !enabled;
+        }
+        if (this.chatInput) {
+            this.chatInput.disabled = !enabled;
+        }
+
+        // Show/hide loader
+        const loaderOverlay = document.getElementById('loader-overlay'); // Ensure this element exists in your HTML
+        if (loaderOverlay) {
+            if (enabled) {
+                loaderOverlay.classList.add('hidden');
+            } else {
+                loaderOverlay.classList.remove('hidden');
+            }
+        }
+    }
+}
+
+// Mock WebSocket for testing without a real server
+class MockWebSocket {
+    constructor(url, dashboard) {
+        this.url = url;
+        this.dashboard = dashboard;
+        this.readyState = WebSocket.CONNECTING;
+
+        // Simulate connection delay
+        setTimeout(() => {
+            this.readyState = WebSocket.OPEN;
+            if (this.onopen) this.onopen();
+            this.dashboard.addLogMessage('Mock WebSocket connected.', 'success'); // Log mock connection
+        }, 1000);
+    }
+
+    send(data) {
+        console.log('MockWebSocket: Sending data:', data);
+
+        try {
+            const message = JSON.parse(data);
+
+            // Simulate different responses based on message type
+            setTimeout(() => {
+                if (message.type === 'start_planning') {
+                    this.simulatePlanningSequence(message.requirements);
+                } else if (message.type === 'get_file_content') {
+                    this.simulateFileContentResponse(message.file_path);
+                } else if (message.type === 'user_message') {
+                    this.simulateAgentResponse(message.content, message.agent);
+                }
+            }, 500); // Simulate network delay for sending
+        } catch (error) {
+            console.error('MockWebSocket: Error parsing message:', error);
+            this.dashboard.addLogMessage('Mock WS: Error parsing message.', 'error');
+        }
+    }
+
+    simulatePlanningSequence(requirements) {
+        this.dashboard.addLogMessage('Mock WS: Simulating planning sequence...', 'info');
+        if (this.onmessage) {
+            this.onmessage({ data: JSON.stringify({ type: 'planning_started', message: 'Planning process initiated by mock backend' }) });
+        }
+
+        const sequences = [
+            { type: 'progress', progress: 10, message: 'Analyzing project requirements' },
+            { type: 'agent_output', agent_type: 'pm_agent', content: `PM Agent: Understood. We'll build a web-based task manager as per your request: "${requirements}".` },
+            { type: 'progress', progress: 20, message: 'Defining architecture and tech stack' },
+            { type: 'agent_output', agent_type: 'architect_agent', content: 'Architect Agent: I recommend a React frontend with a simple file-based structure for this. No backend API needed for now.' },
+            { type: 'progress', progress: 30, message: 'Generating core project structure' },
+            { type: 'file_generated', file_path: 'public/index.html', file_name: 'index.html', content: `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Task Manager</title>
+    <link rel="stylesheet" href="src/index.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script src="src/index.js"></script>
+</body>
+</html>` },
+            { type: 'file_generated', file_path: 'src/index.js', file_name: 'index.js', should_open: false, content: `// Main application entry point - to be updated by dev agent` },
+            { type: 'file_generated', file_path: 'src/App.js', file_name: 'App.js', should_open: false, content: `// Main App component - to be updated by dev agent` },
+            { type: 'file_generated', file_path: 'src/index.css', file_name: 'index.css', should_open: false, content: `body { font-family: sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; color: #333; } #root { max-width: 800px; margin: 20px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }`},
+            { type: 'file_generated', file_path: 'package.json', file_name: 'package.json', should_open: false, content: `{ "name": "web-task-manager", "version": "1.0.0", "private": true, "dependencies": { "react": "^18.2.0", "react-dom": "^18.2.0", "react-scripts": "5.0.1" }, "scripts": { "start": "react-scripts start", "build": "react-scripts build", "test": "react-scripts test", "eject": "react-scripts eject" }, "browserslist": { "production": [ ">0.2%", "not dead", "not op_mini all" ], "development": [ "last 1 chrome version", "last 1 firefox version", "last 1 safari version" ] } }`},
+            { type: 'progress', progress: 50, message: 'Developing TaskManager component' },
+            { type: 'file_generated', file_path: 'src/components/TaskManager.js', file_name: 'TaskManager.js', content: `import React, { useState } from 'react';
+
+const TaskManager = ({ tasks, setTasks }) => {
+  const [newTask, setNewTask] = useState('');
+
+  const addTask = () => {
+    if (newTask.trim()) {
+      setTasks([...tasks, {
+        id: Date.now(),
+        text: newTask,
+        completed: false
+      }]);
+      setNewTask('');
+    }
+  };
+
+  const toggleComplete = (id) => {
+    setTasks(tasks.map(task =>
+      task.id === id ? { ...task, completed: !task.completed } : task
+    ));
+  };
+
+  const deleteTask = (id) => {
+    setTasks(tasks.filter(task => task.id !== id));
+  };
+
+  return (
+    <div className="task-manager">
+      <h2>My Tasks</h2>
+      <div className="add-task">
+        <input
+          type="text"
+          value={newTask}
+          onChange={(e) => setNewTask(e.target.value)}
+          placeholder="Add a new task..."
+        />
+        <button onClick={addTask}>Add Task</button>
+      </div>
+      <ul className="task-list">
+        {tasks.length === 0 && <p>No tasks yet. Add one!</p>}
+        {tasks.map(task => (
+          <li key={task.id} className={\`task-item \${task.completed ? 'completed' : ''}\`}>
+            <input
+              type="checkbox"
+              checked={task.completed}
+              onChange={() => toggleComplete(task.id)}
+            />
+            <span>{task.text}</span>
+            <button onClick={() => deleteTask(task.id)} className="delete-btn">X</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default TaskManager;` },
+            { type: 'file_generated', file_path: 'src/components/TaskManager.css', file_name: 'TaskManager.css', content: `.task-manager {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    margin-top: 20px;
+}
+
+.add-task {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.add-task input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.add-task button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.task-list {
+    list-style: none;
+    padding: 0;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-item input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.task-item span {
+    flex-grow: 1;
+    font-size: 1.1rem;
+}
+
+.task-item.completed span {
+    text-decoration: line-through;
+    color: #888;
+}
+
+.task-item .delete-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    margin-left: 10px;
+}
+`},
+            { type: 'agent_output', agent_type: 'dev_agent', content: 'Dev Agent: TaskManager component and basic styling created.' },
+            { type: 'progress', progress: 70, message: 'Integrating TaskManager into App' },
+            { type: 'file_updated', file_path: 'src/App.js', file_name: 'App.js', content: `// Main App component
+import React, { useState } from 'react';
+import TaskManager from './components/TaskManager';
+import './App.css'; // Assuming App.css might exist for general app layout
+
+function App() {
+  const [tasks, setTasks] = useState([]);
+
+  return (
+    <div className="App">
+      <header className="App-header">
+        <h1>Simple Task Manager</h1>
+      </header>
+      <main>
+        <TaskManager tasks={tasks} setTasks={setTasks} />
+      </main>
+    </div>
+  );
+}
+
+export default App;` },
+            { type: 'file_updated', file_path: 'src/index.js', file_name: 'index.js', content: `// Main application entry point
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import './index.css';
+import './components/TaskManager.css'; // Import TaskManager styles
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);` },
+            { type: 'progress', progress: 85, message: 'Creating basic tests' },
+            { type: 'file_generated', file_path: 'src/tests/TaskManager.test.js', file_name: 'TaskManager.test.js', content: `import { render, screen, fireEvent } from '@testing-library/react';
+import TaskManager from '../components/TaskManager';
+
+test('renders task manager input', () => {
+  render(<TaskManager tasks={[]} setTasks={() => {}} />);
+  const inputElement = screen.getByPlaceholderText(/add a new task/i);
+  expect(inputElement).toBeInTheDocument();
+});
+
+test('adds a new task', () => {
+  const mockSetTasks = jest.fn();
+  render(<TaskManager tasks={[]} setTasks={mockSetTasks} />);
+  const inputElement = screen.getByPlaceholderText(/add a new task/i);
+  const addButton = screen.getByText(/add task/i);
+
+  fireEvent.change(inputElement, { target: { value: 'Buy groceries' } });
+  fireEvent.click(addButton);
+
+  expect(mockSetTasks).toHaveBeenCalledWith(expect.arrayContaining([
+    expect.objectContaining({ text: 'Buy groceries', completed: false })
+  ]));
+});
+
+test('toggles task completion', () => {
+    const initialTasks = [{ id: 1, text: 'Test Task', completed: false }];
+    const mockSetTasks = jest.fn();
+    render(<TaskManager tasks={initialTasks} setTasks={mockSetTasks} />);
+
+    const checkbox = screen.getByRole('checkbox');
+    fireEvent.click(checkbox);
+
+    expect(mockSetTasks).toHaveBeenCalledWith(expect.arrayContaining([
+      expect.objectContaining({ id: 1, completed: true })
+    ]));
+});
+
+test('deletes a task', () => {
+    const initialTasks = [{ id: 1, text: 'Test Task', completed: false }];
+    const mockSetTasks = jest.fn();
+    render(<TaskManager tasks={initialTasks} setTasks={mockSetTasks} />);
+
+    const deleteButton = screen.getByText('X');
+    fireEvent.click(deleteButton);
+
+    expect(mockSetTasks).toHaveBeenCalledWith([]); // Expect tasks to be empty
+});
+` },
+            { type: 'agent_output', agent_type: 'qa_agent', content: 'QA Agent: Basic test cases for TaskManager are ready. Further testing will be manual.' },
+            { type: 'progress', progress: 100, message: 'Project scaffolding complete and initial tests written' },
+            { type: 'planning_completed', message: 'Mock project development finished. Review the files!' }
+        ];
+
+        sequences.forEach((msg, index) => {
+            setTimeout(() => {
+                if (this.onmessage) {
+                    this.onmessage({ data: JSON.stringify(msg) });
+                }
+            }, index * 1000 + 2000); // Start simulation after initial 2-second delay
+        });
+    }
+
+    simulateFileContentResponse(filePath) {
+        const mockContents = this.dashboard.projectFiles; // Use the dashboard's projectFiles as mock source
+
+        setTimeout(() => {
+            const content = mockContents[filePath]?.content || `// Mock content for ${filePath}\nconsole.log('File: ${filePath}');\n// Content not found in initial mock data.`;
+            if (this.onmessage) {
+                this.onmessage({
+                    data: JSON.stringify({
+                        type: 'file_content_response',
+                        file_path: filePath,
+                        content: content
+                    })
+                });
+            }
+        }, 300);
+    }
+
+    simulateAgentResponse(userMessage, agentType) {
+        let responseContent = `Mock ${agentType} received: "${userMessage}". I'm processing your request.`;
+        if (userMessage.toLowerCase().includes('hello')) {
+            responseContent = `Mock ${agentType}: Hello there! How can I help you today?`;
+        } else if (userMessage.toLowerCase().includes('task manager')) {
+            responseContent = `Mock ${agentType}: Yes, the Task Manager component is in \`src/components/TaskManager.js\`. Is there something specific you'd like to know about it?`;
+        } else if (userMessage.toLowerCase().includes('error')) {
+            responseContent = `Mock ${agentType}: I detected a simulated error. Please check the logs for details.`;
+            if (this.onmessage) {
+                this.onmessage({ data: JSON.stringify({ type: 'error', message: 'Simulated error: Something went wrong!' }) });
+            }
+        }
+
+        setTimeout(() => {
+            if (this.onmessage) {
+                this.onmessage({
+                    data: JSON.stringify({
+                        type: 'agent_output',
+                        agent_type: agentType,
+                        content: responseContent
+                    })
+                });
+                // Re-enable UI after agent responds
+                this.dashboard._setUIInteraction(true);
+            }
+        }, 1500);
+    }
+
+    close() {
+        this.readyState = WebSocket.CLOSED;
+        if (this.onclose) this.onclose();
+        this.dashboard.addLogMessage('Mock WebSocket closed.', 'info');
+    }
+}
+
+// Initialize the dashboard when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded - Initializing PlanningDashboard');
+    window.planningDashboard = new PlanningDashboard();
+});
+
+// Global constants for WebSocket states (for compatibility)
+if (typeof WebSocket !== 'undefined') {
+    WebSocket.CONNECTING = 0;
+    WebSocket.OPEN = 1;
+    WebSocket.CLOSING = 2;
+    WebSocket.CLOSED = 3;
+}

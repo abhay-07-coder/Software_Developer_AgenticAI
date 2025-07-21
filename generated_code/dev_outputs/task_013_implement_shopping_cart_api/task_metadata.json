@@ -1,0 +1,15 @@
+{
+  "task_id": "task_013",
+  "title": "Implement Shopping Cart API",
+  "description": "Develop endpoints for adding items to a cart, updating quantities, removing items, and viewing the cart. - Acceptance Criteria: A user can add a product to their cart. - Cart contents persist between sessions (for logged-in users). - Cart totals are calculated correctly.",
+  "complexity": "medium",
+  "estimated_hours": 16.0,
+  "dependencies": [
+    "task_011",
+    "task_012"
+  ],
+  "completed_at": "2025-07-21T05:50:18.247799",
+  "output_files": [
+    "task_013_implement_shopping_cart_api/implementation.py"
+  ]
+}
