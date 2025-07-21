@@ -1,0 +1,5 @@
+# Hugging Face Spaces configuration
+# Documentation: https://huggingface.co/docs/hub/spaces-config-reference
+runtime: docker
+sdk: docker
+app_port: 7860

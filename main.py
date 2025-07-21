@@ -344,7 +344,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     continue
 
                 if not file_path_str:
-
                     await websocket_manager.send_personal_message({
                         "type": "file_content_response",
                         "file_path": None,
@@ -353,19 +352,30 @@ async def websocket_endpoint(websocket: WebSocket):
                         "timestamp": datetime.now().isoformat()
                     }, websocket)
                     continue
-                # --- End Security Check ---
 
-                if not requested_path.is_file():
-                    await websocket_manager.send_personal_message({
-                        "type": "file_content_response",
-                        "file_path": file_path_str,
-                        "content": None,
-                        "error": "File not found or is a directory.",
-                        "timestamp": datetime.now().isoformat()
-                    }, websocket)
-                    continue
-
+                # --- SECURITY CHECK: Prevent Path Traversal ---
                 try:
+                    requested_path = GENERATED_CODE_ROOT.joinpath(file_path_str).resolve()
+                    if not requested_path.is_relative_to(GENERATED_CODE_ROOT.resolve()):
+                        await websocket_manager.send_personal_message({
+                            "type": "file_content_response",
+                            "file_path": file_path_str,
+                            "content": None,
+                            "error": "Access denied: Path is outside the allowed directory.",
+                            "timestamp": datetime.now().isoformat()
+                        }, websocket)
+                        continue
+
+                    if not requested_path.is_file():
+                        await websocket_manager.send_personal_message({
+                            "type": "file_content_response",
+                            "file_path": file_path_str,
+                            "content": None,
+                            "error": "File not found or is a directory.",
+                            "timestamp": datetime.now().isoformat()
+                        }, websocket)
+                        continue
+
                     content = requested_path.read_text(encoding="utf-8")
                     await websocket_manager.send_personal_message({
                         "type": "file_content_response",

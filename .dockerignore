@@ -1,0 +1,10 @@
+.git
+.venv/
+__pycache__/
+*.pyc
+*.log
+.DS_Store
+.vscode/
+# If generated_code gets very large locally, you might want to ignore it
+# but for initial empty directories, it's fine to copy and let the app create.
+# generated_code/
